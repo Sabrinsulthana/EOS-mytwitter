@@ -1,0 +1,137 @@
+#include <eosiolib/eosio.hpp>
+#include <eosiolib/print.hpp>
+
+using namespace eosio;
+using namespace std;
+using std::string;
+
+class twitter : public contract
+{
+public :
+        using contract :: contract;
+
+	//struct for registration
+        /// @abi table regis i64
+
+        struct regis
+        {
+                account_name ac_name;
+		string pass;
+		string s_key;
+		uint64_t primary_key() const { return ac_name; }
+
+                EOSLIB_SERIALIZE(regis,(ac_name)(pass)(s_key))
+        };
+
+        typedef multi_index<N(regis),regis> reg;
+
+	//struct for chatting
+	///@abi table chat i64
+
+	struct chat
+	{
+		account_name name;
+		account_name to;
+		string msg;
+		uint64_t primary_key() const {return name; }
+
+		EOSLIB_SERIALIZE(chat,(name)(to)(msg));
+	};
+
+	typedef multi_index<N(chat),chat> cht;
+
+
+	/*for twitter registration*/
+
+	///@abi action
+
+	void treg(account_name name,string pass,string s_key)
+	{
+		reg twit(_self,_self);
+
+		auto i = twit.find(name);
+
+		if(i == twit.end())
+		{
+			twit.emplace(_self,[&](auto& sabrin)
+			{
+				sabrin.ac_name = name;
+				sabrin.pass = pass;
+				sabrin.s_key = s_key;
+			});
+		}
+	}
+	/*for password modification*/
+
+	///@abi action
+
+	void tpmodi(account_name name,string pass,string s_key)
+	{
+	 	reg m(_self,_self);
+
+		auto i = m.find(name);
+
+		if(i == m.end())
+			{
+
+			print("successfully logged now you can change password");
+
+			}
+		else
+			{
+			
+			auto i=m.find(name);
+
+			if()
+			m.modify(i,_self,[&](auto& tpm)
+ 				{
+				
+				tpm.pass=pass;
+				tpm.s_key=s_key;
+
+				});
+
+			}
+	}
+
+	/*for  chatting*/
+	///@abi action
+
+	void chatt(account_name sname, account_name to,string msg)
+	{
+		cht c(_self,_self);
+
+		auto i= c.find(sname);
+
+		if(i==c.end())
+
+		{
+		c.emplace(_self,[&](auto& cha)
+			{
+				cha.name=sname;
+				cha.name=to;
+				cha.msg=msg;
+
+			});
+
+		}
+
+		else
+
+		{
+
+		c.modify(i,_self,[&](auto& chm)
+			{
+			chm.name=sname;
+			chm.name=to;
+			chm.msg=msg;
+
+			});
+		}
+
+	}
+
+
+};
+
+EOSIO_ABI(twitter,(treg)(tpmodi)(chatt));

@@ -1,0 +1,331 @@
+#include <eosiolib/eosio.hpp>
+#include <eosiolib/print.hpp>
+
+using namespace eosio;
+using namespace std;
+using std::string;
+
+class twitter : public contract
+{
+public :
+        using contract :: contract;
+
+	/* struct for registration */
+        /// @abi table regis i64
+
+        struct regis
+        {
+                account_name ac_name;
+		string pass;
+		string s_key;
+		uint64_t primary_key() const { return ac_name; }
+
+                EOSLIB_SERIALIZE(regis,(ac_name)(pass)(s_key))
+        };
+
+        typedef multi_index<N(regis),regis> reg;
+
+	/* struct for chatting */
+	///@abi table chat i64
+
+	struct chat
+	{
+		account_name name;
+		std::vector<string> msg;
+		std::vector<uint64_t> time;
+		uint64_t primary_key() const {return name; }
+
+		EOSLIB_SERIALIZE(chat,(name)(msg)(time));
+	};
+
+	typedef multi_index<N(chat),chat> cht;
+
+	/* personal chat sender */
+	///@abi table sender i64
+
+	struct sender
+	{
+
+		account_name sname;
+		std::vector<string>smsg;
+		std::vector<uint64_t>stime;
+
+		uint64_t primary_key() const {return sname; }
+
+		EOSLIB_SERIALIZE(sender,(sname)(smsg)(stime));
+	};
+
+	typedef multi_index<N(sender),sender>sdr;
+
+
+	/* personal chat receiver */
+	///@abi table receiver i64
+
+	struct receiver
+	{
+		account_name rname;
+		std::vector<string>rmsg;
+		std::vector<uint64_t>rtime;
+		uint64_t primary_key() const {return rname; }
+
+		EOSLIB_SERIALIZE(receiver,(rname)(rmsg)(rtime));
+	};
+
+	typedef multi_index<N(receiver),receiver> recve;
+
+	/* follower,unfollower struct functionality */
+	///@abi table follower i64
+
+	struct follower
+	{
+		account_name name;
+		std::vector<account_name>fname;
+
+		uint64_t primary_key() const {return name; }
+
+		EOSLIB_SERIALIZE(follower,(name)(fname));
+
+	};
+		typedef multi_index<N(follower),follower>flwr;
+
+
+
+	 /*  for twitter registration  */
+
+	///@abi action
+
+	void treg(account_name name,string pass,string s_key)
+	{
+		reg twit(_self,_self);
+
+		auto i = twit.find(name);
+
+		if(i == twit.end())
+		{
+			twit.emplace(_self,[&](auto& sabrin)
+			{
+				sabrin.ac_name = name;
+				sabrin.pass = pass;
+				sabrin.s_key = s_key;
+			});
+		}
+	}
+
+
+	/*for password modification*/
+
+	///@abi action
+
+	void tpmodi(account_name name,string pass,string s_key)
+	{
+	 	reg m(_self,_self);
+
+		auto i = m.find(name);
+
+		if(i != m.end())
+			{
+
+			m.modify(i,_self,[&](auto& tpm)
+
+				{
+
+				if(tpm.ac_name == name && tpm.s_key == s_key)
+                                	{
+						tpm.pass=pass;
+ 					}
+
+				});
+			}
+	}
+
+
+	/* for  chatting */
+	///@abi action
+
+	void chatt(account_name sname,string msg)
+	{
+		cht c(_self,_self);
+
+		auto i= c.find(sname);
+
+		if(i == c.end())
+
+		{
+			print("lets start chat when you are logged in");
+
+		}
+		else
+		{
+		c.modify(i,_self,[&](auto& cs)
+
+		{
+			cs.msg.push_back(msg);
+			cs.time.push_back(now());
+
+
+		});
+
+
+		}
+
+	}
+
+	/* personal chat sender */
+	///@abi action
+
+	void  srmsg(account_name ssname,account_name rrname,string msg)
+	{
+		reg s(_self,_self);
+
+		auto ii = s.find(ssname);
+
+		if(ii == s.end())
+
+			{
+			print("msg has been sent");
+
+			}
+
+		sdr ss(_self,_self);
+
+		auto i = ss.find(ssname);
+
+		if(i == ss.end())
+
+			{
+			print("need to create an account");
+			}
+		else
+			{
+			ss.modify(i,_self,[&](auto& snd)
+
+			{
+				snd.sname=ssname;
+				snd.smsg.push_back(msg);
+				snd.stime.push_back(now());
+
+			});
+
+
+			}
+
+		recve rr(_self,_self);
+
+		auto i1=rr.find(rrname);
+
+		if(i1 == rr.end())
+			{
+			print("msg has been received");
+			}
+		else
+			{
+
+			rr.modify(i1,_self,[&](auto& recvr)
+			{
+				recvr.rname=rrname;
+				recvr.rmsg.push_back(msg);
+				recvr.rtime.push_back(now());
+
+			});
+
+
+			}
+	}
+
+
+	/* follower function  */
+	///@abi action
+
+	void follow(account_name name,account_name fname)
+		{
+
+		reg f(_self,_self);
+
+		auto ii= f.find(name);
+
+		if(ii == f.end())
+			{
+			print("you need to create an account");
+			}
+
+		flwr ff(_self,_self);
+
+		auto i=ff.find(name);
+
+		if(i == ff.end())
+			{
+				ff.modify(i,_self,[&](auto& flr)
+
+				{
+					flr.name=name;
+					flr.fname.push_back(fname);
+
+				});
+
+
+
+			}
+
+
+		}
+
+
+	/*unfollower  function */
+	///@abi action
+
+	void unfollow(account_name unname,account_name ufname)
+
+	{
+
+		reg f(_self,_self);
+
+		auto i = f.find(unname);
+
+		if( i == f.end())
+
+			{
+
+			print("you are going to unfollow");
+
+			}
+		{
+		flwr uf(_self,_self);
+
+		auto i1 = uf.find(unname);
+	
+		auto i2 = uf.get(unname);
+
+		if( i1 ! = uf.end())
+			{
+
+			for(uint64_t i = 0; i < i2.fname.size(); i++)
+				{
+
+				if(ufname == i2.fname.at(i))
+
+					{
+
+					flwr.modify(i1,_self,[&](auto& uflw)
+
+						{
+
+						uflw.fname.erase( uflw.fname.begin() + i);
+
+						});
+
+
+					}
+
+				}
+
+			}
+		}
+
+	}
+
+
+
+};
+
+EOSIO_ABI(twitter,(treg)(tpmodi)(chatt)(srmsg)(follow)(unfollow));
+
